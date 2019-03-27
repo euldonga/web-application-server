@@ -57,41 +57,33 @@ public class RequestHandler extends Thread {
 				Map<String, String> params = HttpRequestUtils.parseQueryString(requestBody);
 				User user = new User(params.get("userId"), params.get("password"), params.get("name"), params.get("email"));
 				log.debug("User: {}", user.toString());
-				url = "/index.html";
+				
+				DataOutputStream dos = new DataOutputStream(out);
+				response302Header(dos);
+			} else {
+				DataOutputStream dos = new DataOutputStream(out);
+				byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
+				response200Header(dos, body.length);
+				responseBody(dos, body);
 			}
-			
-			byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
-			DataOutputStream dos = new DataOutputStream(out);
-			response200Header(dos, body.length);
-			responseBody(dos, body);
 		} catch (IOException e) {
 			log.error(e.getMessage());
 		}
 	}
 	
-	private String whileTermTest(BufferedReader br) throws IOException {
-		return br.readLine();
-	}
-	
-	private String getUrl(InputStream in) {
-		BufferedReader br = new BufferedReader(new InputStreamReader(in));
-		String header = null;
+	/**
+	 * redirect 방식은 내부적으로 Http 302 코드를 사용.
+	 * 
+	 * @param dos
+	 */
+	private void response302Header(DataOutputStream dos) {
 		try {
-			while ((header = whileTermTest(br)) != null) {
-				log.debug(header);
-				if (header.startsWith("GET")) {
-					//return header.split("\\s")[1];
-				}
-				
-			}
-			log.debug("termicate while");
-			return header.split("\\s")[1];
+			dos.writeBytes("HTTP/1.1 302 Found \r\n");
+			dos.writeBytes("Location: /index.html\r\n");
+			dos.writeBytes("\r\n");
 		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			log.debug("request complete.");
+			log.error(e.getMessage());
 		}
-		return null;
 	}
 
 	private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
